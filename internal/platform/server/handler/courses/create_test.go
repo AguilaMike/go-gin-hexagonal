@@ -3,6 +3,7 @@ package courses
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,53 +17,115 @@ import (
 )
 
 func TestCreateHandler(t *testing.T) {
-	courseRepository := new(storagemocks.CourseRepository)
-	courseRepository.On("Save", mock.Anything, mock.AnythingOfType("mooc.Course")).Return(nil)
+	setMockRepository := func(rv interface{}) *gin.Engine {
+		courseRepository := new(storagemocks.CourseRepository)
+		courseRepository.On("Save", mock.Anything, mock.AnythingOfType("mooc.Course")).Return(rv)
 
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	r.POST("/courses", CreateHandler(courseRepository))
+		gin.SetMode(gin.TestMode)
+		r := gin.New()
+		r.POST("/courses", CreateHandler(courseRepository))
+		return r
+	}
 
-	t.Run("given an invalid request it returns 400", func(t *testing.T) {
-		createCourseReq := createRequest{
-			ID:   "8a1c5cdc-ba57-445a-994d-aa412d23723f",
-			Name: "Demo Course",
-		}
+	type args struct {
+		courseRepository createRequest
+		mockReturnValue  interface{}
+	}
+	tests := []struct {
+		name string
+		args args
+		want int
+	}{
+		{
+			name: "given an invalid request it returns 400",
+			args: args{
+				courseRepository: createRequest{
+					ID:   "8a1c5cdc-ba57-445a-994d-aa412d23723f",
+					Name: "Demo Course",
+				},
+				mockReturnValue: nil,
+			},
+			want: http.StatusBadRequest,
+		},
+		{
+			name: "given a valid request it returns 201",
+			args: args{
+				courseRepository: createRequest{
+					ID:       "8a1c5cdc-ba57-445a-994d-aa412d23723f",
+					Name:     "Demo Course",
+					Duration: "10 months",
+				},
+				mockReturnValue: nil,
+			},
+			want: http.StatusCreated,
+		},
+		{
+			name: "given a invalid token it returns 400",
+			args: args{
+				courseRepository: createRequest{
+					ID:       "NO-VALID-UUID",
+					Name:     "Demo Course",
+					Duration: "10 months",
+				},
+				mockReturnValue: nil,
+			},
+			want: http.StatusBadRequest,
+		},
+		{
+			name: "given a empty name it returns 400",
+			args: args{
+				courseRepository: createRequest{
+					ID:       "8a1c5cdc-ba57-445a-994d-aa412d23723f",
+					Name:     "",
+					Duration: "10 months",
+				},
+				mockReturnValue: nil,
+			},
+			want: http.StatusBadRequest,
+		},
+		{
+			name: "given a empty duration it returns 400",
+			args: args{
+				courseRepository: createRequest{
+					ID:       "8a1c5cdc-ba57-445a-994d-aa412d23723f",
+					Name:     "Demo Course",
+					Duration: "",
+				},
+				mockReturnValue: nil,
+			},
+			want: http.StatusBadRequest,
+		},
+		{
+			name: "given a error to save it returns 500",
+			args: args{
+				courseRepository: createRequest{
+					ID:       "8a1c5cdc-ba57-445a-994d-aa412d23723f",
+					Name:     "Demo Course",
+					Duration: "10 months",
+				},
+				mockReturnValue: errors.New("error to save"),
+			},
+			want: http.StatusInternalServerError,
+		},
+	}
 
-		b, err := json.Marshal(createCourseReq)
-		require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := setMockRepository(tt.args.mockReturnValue)
 
-		req, err := http.NewRequest(http.MethodPost, "/courses", bytes.NewBuffer(b))
-		require.NoError(t, err)
+			b, err := json.Marshal(tt.args.courseRepository)
+			require.NoError(t, err)
 
-		rec := httptest.NewRecorder()
-		r.ServeHTTP(rec, req)
+			req, err := http.NewRequest(http.MethodPost, "/courses", bytes.NewBuffer(b))
+			require.NoError(t, err)
 
-		res := rec.Result()
-		defer res.Body.Close()
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, req)
 
-		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-	})
+			res := rec.Result()
+			defer res.Body.Close()
 
-	t.Run("given a valid request it returns 201", func(t *testing.T) {
-		createCourseReq := createRequest{
-			ID:       "8a1c5cdc-ba57-445a-994d-aa412d23723f",
-			Name:     "Demo Course",
-			Duration: "10 months",
-		}
-
-		b, err := json.Marshal(createCourseReq)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/courses", bytes.NewBuffer(b))
-		require.NoError(t, err)
-
-		rec := httptest.NewRecorder()
-		r.ServeHTTP(rec, req)
-
-		res := rec.Result()
-		defer res.Body.Close()
-
-		assert.Equal(t, http.StatusCreated, res.StatusCode)
-	})
+			assert.Equal(t, tt.want, res.StatusCode)
+		})
+	}
 }

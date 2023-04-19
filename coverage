@@ -1,0 +1,11 @@
+mode: count
+github.com/AguilaMike/go-gin-hexagonal/internal/platform/server/handler/health/check.go:10.37,11.32 1 1
+github.com/AguilaMike/go-gin-hexagonal/internal/platform/server/handler/health/check.go:11.32,13.3 1 1
+github.com/AguilaMike/go-gin-hexagonal/internal/platform/server/handler/courses/create.go:18.76,19.32 1 6
+github.com/AguilaMike/go-gin-hexagonal/internal/platform/server/handler/courses/create.go:19.32,21.44 2 6
+github.com/AguilaMike/go-gin-hexagonal/internal/platform/server/handler/courses/create.go:21.44,24.4 2 3
+github.com/AguilaMike/go-gin-hexagonal/internal/platform/server/handler/courses/create.go:26.3,27.17 2 3
+github.com/AguilaMike/go-gin-hexagonal/internal/platform/server/handler/courses/create.go:27.17,30.4 2 1
+github.com/AguilaMike/go-gin-hexagonal/internal/platform/server/handler/courses/create.go:32.3,32.60 1 2
+github.com/AguilaMike/go-gin-hexagonal/internal/platform/server/handler/courses/create.go:32.60,35.4 2 1
+github.com/AguilaMike/go-gin-hexagonal/internal/platform/server/handler/courses/create.go:37.3,37.33 1 1
