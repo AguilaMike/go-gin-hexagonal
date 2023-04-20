@@ -1,6 +1,7 @@
 package courses
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,10 @@ func CreateHandler(courseRepository mooc.CourseRepository) gin.HandlerFunc {
 		}
 
 		course, err := mooc.NewCourse(req.ID, req.Name, req.Duration)
+		if errors.Is(err, mooc.ErrInvalidDuration) {
+			ctx.JSON(http.StatusNotAcceptable, err.Error())
+			return
+		}
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, err.Error())
 			return

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -56,6 +57,7 @@ func (name CourseName) String() string {
 }
 
 var ErrEmptyDuration = errors.New("the field Duration can not be empty")
+var ErrInvalidDuration = errors.New("the field Duration is invalid")
 
 // CourseDuration represents the course duration.
 type CourseDuration struct {
@@ -65,6 +67,10 @@ type CourseDuration struct {
 func NewCourseDuration(value string) (CourseDuration, error) {
 	if value == "" {
 		return CourseDuration{}, ErrEmptyDuration
+	}
+
+	if !checkValidDuration(value) {
+		return CourseDuration{}, ErrInvalidDuration
 	}
 
 	return CourseDuration{
@@ -77,9 +83,27 @@ func (duration CourseDuration) String() string {
 	return duration.value
 }
 
+// contains checks if a string is present in a slice
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if strings.Contains(strings.ToLower(str), v) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func checkValidDuration(duration string) bool {
+	validDuration := []string{"minute", "minutes", "hour", "hours", "day", "days", "week", "weeks", "month", "months", "year", "years"}
+	return contains(validDuration, duration)
+}
+
 // CourseRepository defines the expected behaviour from a course storage.
 type CourseRepository interface {
 	Save(ctx context.Context, course Course) error
+	GetAll(ctx context.Context) ([]Course, error)
+	GetByID(ctx context.Context, id string) (*Course, error)
 }
 
 //go:generate mockery --case=snake --outpkg=storagemocks --output=platform/storage/storagemocks --name=CourseRepository

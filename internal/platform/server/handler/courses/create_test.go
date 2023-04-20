@@ -17,9 +17,9 @@ import (
 )
 
 func TestCreateHandler(t *testing.T) {
-	setMockRepository := func(rv interface{}) *gin.Engine {
+	setMockRepository := func(err error) *gin.Engine {
 		courseRepository := new(storagemocks.CourseRepository)
-		courseRepository.On("Save", mock.Anything, mock.AnythingOfType("mooc.Course")).Return(rv)
+		courseRepository.On("Save", mock.Anything, mock.AnythingOfType("mooc.Course")).Return(err)
 
 		gin.SetMode(gin.TestMode)
 		r := gin.New()
@@ -29,7 +29,7 @@ func TestCreateHandler(t *testing.T) {
 
 	type args struct {
 		courseRepository createRequest
-		mockReturnValue  interface{}
+		mockReturnValue  error
 	}
 	tests := []struct {
 		name string
@@ -94,6 +94,18 @@ func TestCreateHandler(t *testing.T) {
 				mockReturnValue: nil,
 			},
 			want: http.StatusBadRequest,
+		},
+		{
+			name: "given a invalid duration it returns 406",
+			args: args{
+				courseRepository: createRequest{
+					ID:       "8a1c5cdc-ba57-445a-994d-aa412d23723f",
+					Name:     "Demo Course",
+					Duration: "Duration",
+				},
+				mockReturnValue: nil,
+			},
+			want: http.StatusNotAcceptable,
 		},
 		{
 			name: "given a error to save it returns 500",

@@ -22,6 +22,54 @@ func NewCourseRepository(db *sql.DB) *CourseRepository {
 	}
 }
 
+// GetAll implements the mooc.CourseRepository interface.
+func (r *CourseRepository) GetAll(ctx context.Context) ([]mooc.Course, error) {
+	courseSQLStruct := sqlbuilder.NewStruct(new(sqlCourse))
+	query, args := courseSQLStruct.SelectFrom(sqlCourseTable).Build()
+
+	rows, _ := r.db.QueryContext(ctx, query, args...)
+	defer rows.Close()
+
+	var courses []mooc.Course
+	for rows.Next() {
+		var courseDB sqlCourse
+		if err := rows.Scan(courseSQLStruct.Addr(&courseDB)...); err != nil {
+			return nil, fmt.Errorf("error trying to scan course: %w", err)
+		}
+		course, err := mooc.NewCourse(courseDB.ID, courseDB.Name, courseDB.Duration)
+		if err != nil {
+			return nil, fmt.Errorf("error trying to create course: %w", err)
+		}
+		courses = append(courses, course)
+	}
+	return courses, nil
+}
+
+// GetByID implements the mooc.CourseRepository interface.
+func (r *CourseRepository) GetByID(ctx context.Context, id string) (*mooc.Course, error) {
+	courseSQLStruct := sqlbuilder.NewStruct(new(sqlCourse))
+	sb := courseSQLStruct.SelectFrom(sqlCourseTable)
+	sb.Where(sb.Equal("id", id))
+	query, args := sb.Build()
+
+	rows, _ := r.db.QueryContext(ctx, query, args...)
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, fmt.Errorf("course with id %s not found", id)
+	}
+
+	var courseDB sqlCourse
+	if err := rows.Scan(courseSQLStruct.Addr(&courseDB)...); err != nil {
+		return nil, fmt.Errorf("error trying to scan course: %w", err)
+	}
+	course, err := mooc.NewCourse(courseDB.ID, courseDB.Name, courseDB.Duration)
+	if err != nil {
+		return nil, fmt.Errorf("error trying to create course: %w", err)
+	}
+	return &course, nil
+}
+
 // Save implements the mooc.CourseRepository interface.
 func (r *CourseRepository) Save(ctx context.Context, course mooc.Course) error {
 	courseSQLStruct := sqlbuilder.NewStruct(new(sqlCourse))
